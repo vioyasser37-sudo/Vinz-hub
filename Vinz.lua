@@ -14,26 +14,29 @@ local Window = Rayfield:CreateWindow({
 local cfg = { fast = false, ultra = false, ws = 16 }
 local lp = game.Players.LocalPlayer
 
--- === AUTO FISHING LOGIC ===
+-- === ULTRA FAST LOGIC (MODE BRUTAL) ===
 task.spawn(function()
-    while task.wait() do
-        if cfg.fast or cfg.ultra then
+    while true do
+        task.wait() -- Minimal delay biar ga crash
+        if cfg.ultra then
             pcall(function()
                 local character = lp.Character
                 local rod = character:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool")
                 
                 if rod and rod:FindFirstChild("Click") then
-                    -- Lempar
+                    -- Kirim sinyal lempar dan tarik secara bersamaan tanpa jeda
                     rod.Click:FireServer("Cast")
-                    
-                    -- Jeda Kecepatan
-                    if cfg.ultra then
-                        task.wait(0.01) -- ULTRA FAST (Gila-gilaan)
-                    else
-                        task.wait(0.6) -- FAST (Instan & Stabil)
-                    end
-                    
-                    -- Tarik
+                    rod.Click:FireServer("Catch")
+                end
+            end)
+        elseif cfg.fast then
+            pcall(function()
+                local character = lp.Character
+                local rod = character:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool")
+                
+                if rod and rod:FindFirstChild("Click") then
+                    rod.Click:FireServer("Cast")
+                    task.wait(0.5) -- Jeda setengah detik biar agak natural
                     rod.Click:FireServer("Catch")
                 end
             end)
@@ -45,24 +48,24 @@ end)
 local TabFarm = Window:CreateTab("Auto Farm ⚓")
 
 TabFarm:CreateToggle({
-   Name = "Fast Fishing (Instant)",
+   Name = "Fast Fishing (Stabil)",
    CurrentValue = false,
    Callback = function(v)
       cfg.fast = v
-      if v then cfg.ultra = false end -- Matikan mode satunya biar ga bentrok
+      if v then cfg.ultra = false end
    end,
 })
 
 TabFarm:CreateToggle({
-   Name = "ULTRA FAST FISHING (God Mode)",
+   Name = "ULTRA FAST FISHING (Kayak Video)",
    CurrentValue = false,
    Callback = function(v)
       cfg.ultra = v
       if v then cfg.fast = false end
       if v then
          Rayfield:Notify({
-            Title = "Warning!",
-            Content = "Ultra Mode Aktif! Pastikan Tas Kamu Muat!",
+            Title = "MODE BRUTAL!",
+            Content = "Hati-hati, Tas bakal penuh dalam sekejap!",
             Duration = 3,
             Image = 4483345998,
          })
@@ -94,8 +97,8 @@ TabMisc:CreateButton({
          task.wait(1)
          vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
       end)
-      Rayfield:Notify({Title = "System", Content = "Anti-AFK Enabled", Duration = 3})
+      Rayfield:Notify({Title = "System", Content = "Anti-AFK Aktif", Duration = 3})
    end,
 })
 
-Rayfield:Notify({Title = "Vinz Hub Loaded", Content = "Siap Mancing, Vioo!", Duration = 5})
+Rayfield:Notify({Title = "Vinz Hub Loaded", Content = "Mode Brutal Ready!", Duration = 5})
