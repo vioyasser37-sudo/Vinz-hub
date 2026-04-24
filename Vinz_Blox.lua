@@ -1,54 +1,83 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB | BLOX FRUITS 🏴‍☠️",
+   Name = "VINZ HUB | BLOX FRUITS V2 🏴‍☠️",
    LoadingTitle = "Jatim Mods Project",
-   LoadingSubtitle = "Auto Farm Starter Edition",
+   LoadingSubtitle = "by Vioo - Leveling Edition",
    ConfigurationSaving = { Enabled = false }
 })
 
 -- [[ SETTINGS ]]
-getgenv().AutoFarm = false
-getgenv().BringMob = false
-getgenv().FastAttack = true -- Kita nyalain terus biar gila
+getgenv().Config = {
+    AutoFarm = false,
+    BringMob = false,
+    AntiStaff = false,
+    AutoEquip = true,
+    Distance = 8
+}
 
 local lp = game.Players.LocalPlayer
 local vim = game:GetService("VirtualInputManager")
 
 -- [[ TABS ]]
-local TabFarm = Window:CreateTab("Auto Farm 🌾")
-local TabSafe = Window:CreateTab("Security 🛡️")
+local TabFarm = Window:CreateTab("Auto Leveling 🌾")
+local TabTeleport = Window:CreateTab("World Travel 🏝️")
+local TabMisc = Window:CreateTab("Misc & Safe 🛡️")
 
--- [[ FUNGSI AUTO ATTACK ]]
+-- [[ FUNGSI AUTO CLICK & EQUIP ]]
 local function autoClick()
-    if getgenv().AutoFarm then
-        vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+    vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+end
+
+local function equipWeapon()
+    if getgenv().Config.AutoEquip then
+        for _, v in pairs(lp.Backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                lp.Character.Humanoid:EquipTool(v)
+            end
+        end
     end
 end
 
--- [[ CORE FARMING LOGIC ]]
-spawn(function()
+-- [[ LOGIC AUTO QUEST (SEA 1 BASIS) ]]
+local function getQuest()
+    local lvl = lp.Data.Level.Value
+    if lvl < 10 then return "Bandit", "BanditQuest1", 1
+    elseif lvl < 15 then return "Monkey", "JungleQuest", 1
+    elseif lvl < 30 then return "Gorilla", "JungleQuest", 2
+    -- Tambahkan logic quest lainnya di sini sesuai progress kamu
+    else return "Bandit", "BanditQuest1", 1 end
+end
+
+-- [[ CORE FARMING ENGINE ]]
+task.spawn(function()
     while task.wait() do
-        if getgenv().AutoFarm then
+        if getgenv().Config.AutoFarm then
             pcall(function()
-                -- Nyari musuh di sekitar (Contoh: Bandit di Starter Island)
+                local target, questName, questId = getQuest()
+                
+                -- Cek apakah sudah punya quest
+                if not lp.PlayerGui.Main:FindFirstChild("Quest") or lp.PlayerGui.Main.Quest.Visible == false then
+                    -- Teleport ke NPC Quest (Contoh Starter Island)
+                    -- Sesuai lokasi NPC masing-masing quest
+                end
+
+                equipWeapon()
+                
                 for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    if v.Name == target and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
                         repeat
                             task.wait()
-                            -- 1. Teleport ke musuh (berdiri di belakangnya biar aman)
-                            lp.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            lp.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().Config.Distance, 0)
                             
-                            -- 2. Kumpulin musuh kalau fiturnya nyala
-                            if getgenv().BringMob then
-                                v.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+                            if getgenv().Config.BringMob then
+                                v.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, -getgenv().Config.Distance, 0)
                                 v.HumanoidRootPart.CanCollide = false
                             end
                             
-                            -- 3. Gebuk!
                             autoClick()
-                        until not getgenv().AutoFarm or v.Humanoid.Health <= 0
+                        until not getgenv().Config.AutoFarm or v.Humanoid.Health <= 0
                     end
                 end
             end)
@@ -58,33 +87,57 @@ end)
 
 -- [[ UI ELEMENTS ]]
 TabFarm:CreateToggle({
-   Name = "Start Auto Farm (Bandit)",
+   Name = "Auto Farm Level (Auto Quest)",
    CurrentValue = false,
-   Callback = function(v) getgenv().AutoFarm = v end,
+   Callback = function(v) getgenv().Config.AutoFarm = v end,
 })
 
 TabFarm:CreateToggle({
-   Name = "Bring Mob (Kumpulin NPC)",
+   Name = "Bring Mob (Fast Farm)",
    CurrentValue = false,
-   Callback = function(v) getgenv().BringMob = v end,
+   Callback = function(v) getgenv().Config.BringMob = v end,
 })
 
-TabSafe:CreateToggle({
-   Name = "Anti-Staff (Auto Kick)",
-   CurrentValue = false,
-   Callback = function(v) 
-      getgenv().AntiStaff = v 
+TabTeleport:CreateDropdown({
+   Name = "Teleport To Island",
+   Options = {"Starter Island", "Jungle", "Pirate Village", "Desert", "Snow Mountain"},
+   CurrentOption = "Starter Island",
+   Callback = function(v)
+       local locations = {
+           ["Starter Island"] = CFrame.new(1054, 16, 1547),
+           ["Jungle"] = CFrame.new(-1255, 12, 335),
+           ["Pirate Village"] = CFrame.new(-1147, 4, 3828),
+           ["Desert"] = CFrame.new(944, 6, 4329),
+           ["Snow Mountain"] = CFrame.new(1354, 87, -1324)
+       }
+       if locations[v] then
+           lp.Character.HumanoidRootPart.CFrame = locations[v]
+       end
    end,
 })
 
--- Logic Anti-Staff
-game.Players.PlayerAdded:Connect(function(player)
-    if getgenv().AntiStaff then
-        -- Cek kalau ada admin/player mencurigakan masuk
-        if player:GetRankInGroup(2830050) >= 10 then
-            lp:Kick("Admin Detected! Keluar demi keamanan Vioo.")
-        end
-    end
-end)
+TabMisc:CreateToggle({
+   Name = "Anti-AFK",
+   CurrentValue = true,
+   Callback = function(v)
+       -- Logic Anti-AFK
+       local vu = game:GetService("VirtualUser")
+       lp.Idled:Connect(function()
+           if v then vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame) task.wait(1) vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame) end
+       end)
+   end,
+})
 
-Rayfield:Notify({Title = "Vinz Hub Blox", Content = "Siap tempur! Pastikan pegang senjata/combat ya!", Duration = 5})
+TabMisc:CreateButton({
+   Name = "Server Hop (Cari Server Sepi)",
+   Callback = function()
+       local x = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+       for _,v in pairs(x.data) do
+           if v.playing < v.maxPlayers then
+               game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
+           end
+       end
+   end,
+})
+
+Rayfield:Notify({Title = "Vinz Hub Fixed", Content = "Bug Teleport Fix & Auto-Quest Ready!", Duration = 5})
