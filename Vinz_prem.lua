@@ -2,8 +2,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "VINZ HUB V6 PREMIUM 🚀",
-   LoadingTitle = "VinzTeam",
-   LoadingSubtitle = "by Vioo",
+   LoadingTitle = "Jatim Mods Project",
+   LoadingSubtitle = "BRUTAL EDITION v6.5",
    ConfigurationSaving = { Enabled = false }
 })
 
@@ -16,7 +16,7 @@ getgenv().VinzSetting = {
     FOV = 150,
     ESPBox = false,
     HitboxSize = 2,
-    HitboxTransparency = 0.5
+    HitboxTransparency = 0.6
 }
 
 local lp = game.Players.LocalPlayer
@@ -29,33 +29,43 @@ local TabMain = Window:CreateTab("Player 👤")
 local TabCombat = Window:CreateTab("Combat 🔫")
 local TabVisual = Window:CreateTab("Visuals 👁️")
 
--- 3. CORE LOGIC
-local function isVisible(part)
-    if not getgenv().VinzSetting.WallCheck then return true end
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {lp.Character}
-    local result = workspace:Raycast(Camera.CFrame.Position, part.Position - Camera.CFrame.Position, params)
-    return result == nil or result.Instance:IsDescendantOf(part.Parent)
-end
-
-local function getClosestPlayer()
-    local closestTarget = nil
-    local shortestDistance = getgenv().VinzSetting.FOV
+-- 3. IMPROVED AIMBOT LOGIC (THE FIX)
+local function getClosestToCurser()
+    local target = nil
+    local dist = getgenv().VinzSetting.FOV
+    
     for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= lp and p.Character and p.Character:FindFirstChild(getgenv().VinzSetting.AimMode) then
-            local targetPart = p.Character[getgenv().VinzSetting.AimMode]
-            local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-            if onScreen and isVisible(targetPart) then
-                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if distance < shortestDistance then
-                    closestTarget = targetPart
-                    shortestDistance = distance
+        if p ~= lp and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local partName = getgenv().VinzSetting.AimMode
+            if partName == "None" then continue end
+            
+            -- Normalisasi nama part untuk Aimbot
+            local actualPart = (partName == "Head" and "Head" or "HumanoidRootPart")
+            local targetPart = p.Character:FindFirstChild(actualPart)
+            
+            if targetPart then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                if onScreen then
+                    local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if mouseDist < dist then
+                        -- Wall Check Logic
+                        local passWall = true
+                        if getgenv().VinzSetting.WallCheck then
+                            local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 500)
+                            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lp.Character, p.Character})
+                            if hit then passWall = false end
+                        end
+                        
+                        if passWall then
+                            target = targetPart
+                            dist = mouseDist
+                        end
+                    end
                 end
             end
         end
     end
-    return closestTarget
+    return target
 end
 
 -- 4. UI ELEMENTS
@@ -69,27 +79,23 @@ TabMain:CreateSlider({
 
 TabCombat:CreateDropdown({
    Name = "Aimlock Target",
-   Options = {"None", "Head (Danger)", "HumanoidRootPart (Safe)"},
+   Options = {"None", "Head", "HumanoidRootPart"},
    CurrentOption = "None",
-   Callback = function(v)
-      if v == "Head (Danger)" then getgenv().VinzSetting.AimMode = "Head"
-      elseif v == "HumanoidRootPart (Safe)" then getgenv().VinzSetting.AimMode = "HumanoidRootPart"
-      else getgenv().VinzSetting.AimMode = "None" end
-   end,
+   Callback = function(v) getgenv().VinzSetting.AimMode = v end,
+})
+
+TabCombat:CreateSlider({
+   Name = "Hitbox Expander (BRUTAL)",
+   Range = {2, 30}, -- SUDAH DIGEDEIN SAMPE 30!
+   Increment = 1,
+   CurrentValue = 2,
+   Callback = function(v) getgenv().VinzSetting.HitboxSize = v end,
 })
 
 TabCombat:CreateToggle({
    Name = "Wall Check",
    CurrentValue = false,
    Callback = function(v) getgenv().VinzSetting.WallCheck = v end,
-})
-
-TabCombat:CreateSlider({
-   Name = "Hitbox Expander (Size)",
-   Range = {2, 25},
-   Increment = 1,
-   CurrentValue = 2,
-   Callback = function(v) getgenv().VinzSetting.HitboxSize = v end,
 })
 
 TabCombat:CreateToggle({
@@ -105,25 +111,37 @@ TabVisual:CreateToggle({
 })
 
 TabVisual:CreateDropdown({
-   Name = "UI Theme (Custom)",
+   Name = "Theme Editor",
    Options = {"Default", "Ocean", "Amber", "Green", "DarkBlue"},
    CurrentOption = "Default",
    Callback = function(v) Rayfield:SetTheme(v) end,
 })
 
--- 5. ENGINE LOOP
+-- 5. THE ULTIMATE ENGINE
 RunService.RenderStepped:Connect(function()
     pcall(function()
+        -- 1. Walkspeed
         if lp.Character and lp.Character:FindFirstChild("Humanoid") then
             lp.Character.Humanoid.WalkSpeed = getgenv().VinzSetting.WalkSpeed
         end
-        if getgenv().VinzSetting.AimMode ~= "None" and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            local target = getClosestPlayer()
-            if target then Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position) end
+
+        -- 2. AIMBOT FIX (Lebih Agresif)
+        if getgenv().VinzSetting.AimMode ~= "None" then
+            -- Cek input klik kanan (PC) atau tekan layar (Mobile)
+            if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                local target = getClosestToCurser()
+                if target then
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+                end
+            end
         end
+
+        -- 3. BRUTAL HITBOX & ESP
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = p.Character.HumanoidRootPart
+                
+                -- Update Hitbox
                 if getgenv().VinzSetting.HitboxSize > 2 then
                     hrp.Size = Vector3.new(getgenv().VinzSetting.HitboxSize, getgenv().VinzSetting.HitboxSize, getgenv().VinzSetting.HitboxSize)
                     hrp.Transparency = getgenv().VinzSetting.HitboxTransparency
@@ -132,12 +150,14 @@ RunService.RenderStepped:Connect(function()
                     hrp.Size = Vector3.new(2, 2, 1)
                     hrp.Transparency = 1
                 end
+
+                -- Update ESP
                 if getgenv().VinzSetting.ESPBox then
                     if not hrp:FindFirstChild("VinzVisual") then
                         local box = Instance.new("SelectionBox", hrp)
                         box.Name = "VinzVisual"
                         box.LineThickness = 0.05
-                        box.Color3 = Color3.fromRGB(255, 255, 255)
+                        box.Color3 = Color3.fromRGB(255, 0, 0)
                     end
                     hrp.VinzVisual.Adornee = p.Character
                 else
@@ -148,4 +168,4 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
-Rayfield:Notify({Title = "Vinz Hub V6", Content = "Script Premium Siap Dipakai!", Duration = 5})
+Rayfield:Notify({Title = "Vinz Hub BRUTAL", Content = "Aimbot Fixed & Hitbox 30 Ready!", Duration = 5})
