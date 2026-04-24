@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB | BLOX FRUITS PERFECT 🏴‍☠️",
-   LoadingTitle = "Jatim Mods Project",
-   LoadingSubtitle = "Brutal Kill Aura Edition",
+   Name = "VINZ HUB | BLOX FRUITS ULTIMATE 🏴‍☠️",
+   LoadingTitle = "Jatim ModsAndVinzTeam",
+   LoadingSubtitle = "KingMahaRaja's Complete Edition",
    ConfigurationSaving = { Enabled = false }
 })
 
@@ -13,7 +13,9 @@ getgenv().BloxConfig = {
     KillAura = false,
     BringMob = false,
     AutoQuest = true,
-    Distance = 10
+    Distance = 9,
+    WeaponMode = "Melee",
+    AntiStaff = false
 }
 
 local lp = game.Players.LocalPlayer
@@ -21,71 +23,74 @@ local vim = game:GetService("VirtualInputManager")
 
 -- [[ TABS ]]
 local TabFarm = Window:CreateTab("Auto Farm 🌾")
-local TabCombat = Window:CreateTab("Combat ⚔️")
-local TabMisc = Window:CreateTab("Misc 🛡️")
+local TabWeapon = Window:CreateTab("Weapon Mode ⚔️")
+local TabWorld = Window:CreateTab("Teleport 🏝️")
+local TabSafe = Window:CreateTab("Security 🛡️")
 
--- [[ FUNGSI AMBIL QUEST OTOMATIS (REMOTE METHOD) ]]
-local function checkAndGetQuest()
-    local myLvl = lp.Data.Level.Value
-    local hasQuest = lp.PlayerGui.Main:FindFirstChild("Quest") and lp.PlayerGui.Main.Quest.Visible
-    
-    if not hasQuest and getgenv().BloxConfig.AutoQuest then
-        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
-        if myLvl < 10 then
-            remote:InvokeServer("StartQuest", "BanditQuest1", 1)
-        elseif myLvl < 15 then
-            remote:InvokeServer("StartQuest", "JungleQuest", 1) -- Monkey
-        elseif myLvl < 30 then
-            remote:InvokeServer("StartQuest", "JungleQuest", 2) -- Gorilla
+-- [[ FUNGSI AUTO EQUIP ]]
+local function equipSelectedWeapon()
+    pcall(function()
+        local mode = getgenv().BloxConfig.WeaponMode
+        for _, v in pairs(lp.Backpack:GetChildren()) do
+            if (mode == "Melee" and (v.ToolTip == "Melee" or v.Name == "Combat")) or
+               (mode == "Sword" and v.ToolTip == "Sword") or
+               (mode == "Fruit" and (v.ToolTip == "Blox Fruit" or v.Name:find("Fruit"))) then
+                lp.Character.Humanoid:EquipTool(v)
+                break
+            end
         end
-        -- Note: Nanti kita bisa tambah terus list levelnya di sini
-    end
+    end)
 end
 
--- [[ CORE ENGINE: AUTO FARM & KILL AURA ]]
+-- [[ CORE ENGINE: FARM & QUEST ]]
 task.spawn(function()
     while task.wait() do
-        pcall(function()
-            if getgenv().BloxConfig.AutoFarm then
-                checkAndGetQuest()
+        if getgenv().BloxConfig.AutoFarm then
+            pcall(function()
+                local lvl = lp.Data.Level.Value
+                local hasQuest = lp.PlayerGui.Main:FindFirstChild("Quest") and lp.PlayerGui.Main.Quest.Visible
                 
+                -- Auto Quest Logic (Sea 1)
+                if not hasQuest and getgenv().BloxConfig.AutoQuest then
+                    local qName, qID, npcPos
+                    if lvl < 10 then qName, qID, npcPos = "BanditQuest1", 1, CFrame.new(1060, 15, 1532)
+                    elseif lvl < 15 then qName, qID, npcPos = "JungleQuest", 1, CFrame.new(-1601, 37, 153)
+                    elseif lvl < 30 then qName, qID, npcPos = "JungleQuest", 2, CFrame.new(-1601, 37, 153) end
+                    
+                    if npcPos then
+                        lp.Character.HumanoidRootPart.CFrame = npcPos
+                        task.wait(0.5)
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", qName, qID)
+                    end
+                end
+
+                -- Farm & Kill Logic
                 for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
                     if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        equipSelectedWeapon()
                         repeat
                             task.wait()
-                            -- Teleport ke atas musuh
                             lp.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().BloxConfig.Distance, 0)
                             
-                            -- Bring Mob
                             if getgenv().BloxConfig.BringMob then
-                                v.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, -getgenv().BloxConfig.Distance, 0)
+                                v.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame
                                 v.HumanoidRootPart.CanCollide = false
                             end
-                            
-                            -- Click Attack
+
+                            if getgenv().BloxConfig.KillAura then
+                                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Attack", v.Humanoid)
+                            end
                             vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                             vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                         until not getgenv().BloxConfig.AutoFarm or v.Humanoid.Health <= 0
                     end
                 end
-            end
-            
-            -- KILL AURA LOGIC (Terpisah biar makin brutal)
-            if getgenv().BloxConfig.KillAura then
-                for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                    if v:FindFirstChild("HumanoidRootPart") and (v.HumanoidRootPart.Position - lp.Character.HumanoidRootPart.Position).Magnitude < 50 then
-                        -- Memberi damage tanpa perlu animasi
-                        local args = { [1] = v.Humanoid }
-                        game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(unpack(args))
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Attack", v.Humanoid)
-                    end
-                end
-            end
-        end)
+            end)
+        end
     end
 end)
 
--- [[ UI ELEMENTS ]]
+-- [[ UI: AUTO FARM ]]
 TabFarm:CreateToggle({
    Name = "Auto Farm Level",
    CurrentValue = false,
@@ -93,9 +98,9 @@ TabFarm:CreateToggle({
 })
 
 TabFarm:CreateToggle({
-   Name = "Auto Quest (Smart)",
-   CurrentValue = true,
-   Callback = function(v) getgenv().BloxConfig.AutoQuest = v end,
+   Name = "Kill Aura (Instan Hit)",
+   CurrentValue = false,
+   Callback = function(v) getgenv().BloxConfig.KillAura = v end,
 })
 
 TabFarm:CreateToggle({
@@ -104,17 +109,42 @@ TabFarm:CreateToggle({
    Callback = function(v) getgenv().BloxConfig.BringMob = v end,
 })
 
-TabCombat:CreateToggle({
-   Name = "Kill Aura (Instan Kill)",
-   CurrentValue = false,
-   Callback = function(v) getgenv().BloxConfig.KillAura = v end,
+-- [[ UI: WEAPON SELECTION ]]
+TabWeapon:CreateDropdown({
+   Name = "Select Mastery Mode",
+   Options = {"Melee", "Sword", "Fruit"},
+   CurrentOption = "Melee",
+   Callback = function(v) getgenv().BloxConfig.WeaponMode = v end,
 })
 
-TabMisc:CreateButton({
-   Name = "Server Hop",
-   Callback = function()
-       -- Logic pindah server sepi
+-- [[ UI: TELEPORT ]]
+TabWorld:CreateDropdown({
+   Name = "Teleport To Island",
+   Options = {"Starter Island", "Jungle", "Pirate Village", "Desert", "Snow Mountain"},
+   CurrentOption = "Starter Island",
+   Callback = function(v)
+       local locs = {
+           ["Starter Island"] = CFrame.new(1054, 16, 1547),
+           ["Jungle"] = CFrame.new(-1255, 12, 335),
+           ["Pirate Village"] = CFrame.new(-1147, 4, 3828),
+           ["Desert"] = CFrame.new(944, 6, 4329),
+           ["Snow Mountain"] = CFrame.new(1354, 87, -1324)
+       }
+       if locs[v] then lp.Character.HumanoidRootPart.CFrame = locs[v] end
    end,
 })
 
-Rayfield:Notify({Title = "Vinz Hub PERFECT", Content = "Kill Aura & Auto Quest Siap!", Duration = 5})
+-- [[ UI: SECURITY ]]
+TabSafe:CreateToggle({
+   Name = "Anti-Staff (Auto Kick)",
+   CurrentValue = false,
+   Callback = function(v) getgenv().BloxConfig.AntiStaff = v end,
+})
+
+game.Players.PlayerAdded:Connect(function(p)
+    if getgenv().BloxConfig.AntiStaff and p:GetRankInGroup(2830050) >= 10 then
+        lp:Kick("Vioo, Admin masuk! Server diputus biar aman.")
+    end
+end)
+
+Rayfield:Notify({Title = "Vinz Hub ULTIMATE", Content = "Semua fitur sudah kembali, Vioo!", Duration = 5})
