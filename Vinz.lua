@@ -1,76 +1,59 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "VINZ HUB | FISHING ISLAND 🎣", HidePremium = false, SaveConfig = true, ConfigFolder = "VinzFishing"})
+-- VINZ HUB LITE V1
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local AutoFishBtn = Instance.new("TextButton")
+local SpeedBtn = Instance.new("TextButton")
 
-local cfg = { autofish = false, fastMode = false }
-local lp = game.Players.LocalPlayer
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "VinzHubLite"
 
--- === AUTO FISHING LOGIC ===
-task.spawn(function()
-    while task.wait(0.1) do
-        if cfg.autofish then
-            pcall(function()
-                local character = lp.Character
-                local rod = character:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool")
-                
-                if rod and rod:FindFirstChild("Click") then
-                    -- Lempar Kail jika belum
-                    rod.Click:FireServer("Cast")
-                    
-                    if cfg.fastMode then
-                        task.wait(0.2) -- Mode Cepat
-                    else
-                        task.wait(1) -- Mode Normal
-                    end
-                    
-                    -- Tarik Ikan (Instantly)
-                    rod.Click:FireServer("Catch")
-                end
-            end)
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "VINZ HUB - FISHING"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+-- Tombol Auto Fish
+AutoFishBtn.Parent = MainFrame
+AutoFishBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+AutoFishBtn.Size = UDim2.new(0.8, 0, 0, 30)
+AutoFishBtn.Text = "Auto Fish (Aktifkan)"
+AutoFishBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+
+-- Tombol Speed
+SpeedBtn.Parent = MainFrame
+SpeedBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+SpeedBtn.Size = UDim2.new(0.8, 0, 0, 30)
+SpeedBtn.Text = "Speed Hack (Fast)"
+SpeedBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+
+-- Fungsi
+AutoFishBtn.MouseButton1Click:Connect(function()
+    print("Auto Fishing Aktif!")
+    -- Logic sederhana: Klik kail otomatis
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            local rod = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            if rod and rod:FindFirstChild("Click") then
+                rod.Click:FireServer("Cast")
+                task.wait(2)
+                rod.Click:FireServer("Catch")
+            end
         end
-    end
+    end)
 end)
 
--- === GUI TABS ===
-local Tab = Window:MakeTab({Name = "Main Farm ⚓", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+SpeedBtn.MouseButton1Click:Connect(function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+end)
 
-Tab:AddToggle({
-    Name = "Auto Fishing (ON/OFF)",
-    Default = false,
-    Callback = function(v)
-        cfg.autofish = v
-        if v then
-            OrionLib:MakeNotification({Name = "Vinz Hub", Content = "Auto Fishing Aktif!", Time = 3})
-        end
-    end    
-})
-
-Tab:AddToggle({
-    Name = "Fast Mode (⚡)",
-    Default = false,
-    Callback = function(v)
-        cfg.fastMode = v
-    end    
-})
-
-local TabMisc = Window:MakeTab({Name = "Misc ⚡", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-
-TabMisc:AddSlider({
-    Name = "WalkSpeed",
-    Min = 16, Max = 250, Default = 16,
-    Callback = function(v) lp.Character.Humanoid.WalkSpeed = v end
-})
-
-TabMisc:AddButton({
-    Name = "Anti-AFK",
-    Callback = function()
-        local vu = game:GetService("VirtualUser")
-        lp.Idled:Connect(function()
-            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-        end)
-        OrionLib:MakeNotification({Name = "Vinz Hub", Content = "Anti-AFK Aktif!", Time = 3})
-    end
-})
-
-OrionLib:Init()
