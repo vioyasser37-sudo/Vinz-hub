@@ -63,7 +63,17 @@ TabVisual:CreateToggle({
 })
 
 -- 4. ENGINE LOOP (Hitbox, ESP, & Combat)
-task.spawn(function()
+
+
+                -- LOGIC ESP BOX & LINE (Highlight)
+                if not hrp:FindFirstChild("VinzVisual") and (getgenv().VinzSetting.ESPBox or getgenv().VinzSetting.ESPLine) then
+                    local box = Instance.new("SelectionBox", hrp)
+                    box.Name = "VinzVisual"
+                    box.Adornee = (getgenv().VinzSetting.ESPBox and p.Character or nil)
+                    box.LineThickness = 0.05
+                    box.Color3 = Color3.fromRGB(255, 0, 0)
+                elseif hrp:FindFirstChild("VinzVisual") then
+                    hrp.VinzVisual.Adornee = (getgenv().VinzSetting.ESPBox and ptask.spawn(function()
     game:GetService("RunService").RenderStepped:Connect(function()
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -78,17 +88,7 @@ task.spawn(function()
                 else
                     hrp.Size = Vector3.new(2, 2, 1) -- Ukuran asli Roblox
                     hrp.Transparency = 1
-                end
-
-                -- LOGIC ESP BOX & LINE (Highlight)
-                if not hrp:FindFirstChild("VinzVisual") and (getgenv().VinzSetting.ESPBox or getgenv().VinzSetting.ESPLine) then
-                    local box = Instance.new("SelectionBox", hrp)
-                    box.Name = "VinzVisual"
-                    box.Adornee = (getgenv().VinzSetting.ESPBox and p.Character or nil)
-                    box.LineThickness = 0.05
-                    box.Color3 = Color3.fromRGB(255, 0, 0)
-                elseif hrp:FindFirstChild("VinzVisual") then
-                    hrp.VinzVisual.Adornee = (getgenv().VinzSetting.ESPBox and p.Character or nil)
+                        end.Character or nil)
                     if not getgenv().VinzSetting.ESPBox and not getgenv().VinzSetting.ESPLine then
                         hrp.VinzVisual:Destroy()
                     end
