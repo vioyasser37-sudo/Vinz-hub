@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB | BLOX FRUITS V2 🏴‍☠️",
+   Name = "VINZ HUB | BLOX FRUITS V3 🏴‍☠️",
    LoadingTitle = "Jatim Mods Project",
-   LoadingSubtitle = "by Vioo - Leveling Edition",
+   LoadingSubtitle = "Fix Security & Smooth Farm",
    ConfigurationSaving = { Enabled = false }
 })
 
@@ -11,43 +11,43 @@ local Window = Rayfield:CreateWindow({
 getgenv().Config = {
     AutoFarm = false,
     BringMob = false,
-    AntiStaff = false,
-    AutoEquip = true,
     Distance = 8
 }
 
 local lp = game.Players.LocalPlayer
 local vim = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
 
 -- [[ TABS ]]
-local TabFarm = Window:CreateTab("Auto Leveling 🌾")
-local TabTeleport = Window:CreateTab("World Travel 🏝️")
-local TabMisc = Window:CreateTab("Misc & Safe 🛡️")
+local TabFarm = Window:CreateTab("Main Farm 🌾")
+local TabMisc = Window:CreateTab("Misc 🛡️")
 
--- [[ FUNGSI AUTO CLICK & EQUIP ]]
-local function autoClick()
-    vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end
-
-local function equipWeapon()
-    if getgenv().Config.AutoEquip then
-        for _, v in pairs(lp.Backpack:GetChildren()) do
-            if v:IsA("Tool") then
-                lp.Character.Humanoid:EquipTool(v)
-            end
-        end
+-- [[ FUNGSI TWEEN (BIAR GAK KENA KICK) ]]
+local function toPos(pos)
+    local char = lp.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local distance = (char.HumanoidRootPart.Position - pos.p).Magnitude
+        local info = TweenInfo.new(distance / 300, Enum.EasingStyle.Linear) -- Speed 300
+        local tween = TweenService:Create(char.HumanoidRootPart, info, {CFrame = pos})
+        tween:Play()
+        return tween
     end
 end
 
--- [[ LOGIC AUTO QUEST (SEA 1 BASIS) ]]
-local function getQuest()
-    local lvl = lp.Data.Level.Value
-    if lvl < 10 then return "Bandit", "BanditQuest1", 1
-    elseif lvl < 15 then return "Monkey", "JungleQuest", 1
-    elseif lvl < 30 then return "Gorilla", "JungleQuest", 2
-    -- Tambahkan logic quest lainnya di sini sesuai progress kamu
-    else return "Bandit", "BanditQuest1", 1 end
+-- [[ DATA QUEST & NPC ]]
+local questData = {
+    {Level = 0, Enemy = "Bandit", QuestNPC = "Bandit Quest Giver", QuestName = "BanditQuest1", QuestID = 1, PosNPC = CFrame.new(1060, 15, 1532)},
+    {Level = 10, Enemy = "Monkey", QuestNPC = "Adventurer", QuestName = "JungleQuest", QuestID = 1, PosNPC = CFrame.new(-1601, 37, 153)},
+    {Level = 15, Enemy = "Gorilla", QuestNPC = "Adventurer", QuestName = "JungleQuest", QuestID = 2, PosNPC = CFrame.new(-1601, 37, 153)}
+}
+
+local function getCurrentQuest()
+    local myLvl = lp.Data.Level.Value
+    local best = questData[1]
+    for _, q in pairs(questData) do
+        if myLvl >= q.Level then best = q end
+    end
+    return best
 end
 
 -- [[ CORE FARMING ENGINE ]]
@@ -55,29 +55,42 @@ task.spawn(function()
     while task.wait() do
         if getgenv().Config.AutoFarm then
             pcall(function()
-                local target, questName, questId = getQuest()
+                local q = getCurrentQuest()
                 
-                -- Cek apakah sudah punya quest
-                if not lp.PlayerGui.Main:FindFirstChild("Quest") or lp.PlayerGui.Main.Quest.Visible == false then
-                    -- Teleport ke NPC Quest (Contoh Starter Island)
-                    -- Sesuai lokasi NPC masing-masing quest
-                end
-
-                equipWeapon()
+                -- 1. CEK APAKAH SUDAH PUNYA QUEST
+                local hasQuest = lp.PlayerGui.Main:FindFirstChild("Quest") and lp.PlayerGui.Main.Quest.Visible
                 
-                for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                    if v.Name == target and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        repeat
-                            task.wait()
+                if not hasQuest then
+                    -- Pergi ke NPC Quest
+                    toPos(q.PosNPC)
+                    task.wait(1)
+                    -- Dialog ambil quest (Simulasi klik)
+                    fireclickdetector(game:GetService("Workspace").NPCs[q.QuestNPC].ClickDetector)
+                    -- Pilih Quest (Ini butuh penyesuaian tergantung game, contoh simulasi klik)
+                    task.wait(0.5)
+                else
+                    -- 2. CARI MUSUH
+                    local enemyFound = false
+                    for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+                        if v.Name == q.Enemy and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                            enemyFound = true
                             lp.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().Config.Distance, 0)
                             
+                            -- Bring Mob
                             if getgenv().Config.BringMob then
                                 v.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, -getgenv().Config.Distance, 0)
                                 v.HumanoidRootPart.CanCollide = false
                             end
                             
-                            autoClick()
-                        until not getgenv().Config.AutoFarm or v.Humanoid.Health <= 0
+                            -- Serang
+                            vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                            vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        end
+                    end
+                    
+                    -- Jika musuh tidak ada di Workspace, ke area spawn-nya
+                    if not enemyFound then
+                        toPos(q.PosNPC * CFrame.new(0, 50, 50)) -- Ke area sekitar NPC
                     end
                 end
             end)
@@ -87,57 +100,22 @@ end)
 
 -- [[ UI ELEMENTS ]]
 TabFarm:CreateToggle({
-   Name = "Auto Farm Level (Auto Quest)",
+   Name = "Auto Farm (Quest Based)",
    CurrentValue = false,
    Callback = function(v) getgenv().Config.AutoFarm = v end,
 })
 
 TabFarm:CreateToggle({
-   Name = "Bring Mob (Fast Farm)",
+   Name = "Bring Mob",
    CurrentValue = false,
    Callback = function(v) getgenv().Config.BringMob = v end,
 })
 
-TabTeleport:CreateDropdown({
-   Name = "Teleport To Island",
-   Options = {"Starter Island", "Jungle", "Pirate Village", "Desert", "Snow Mountain"},
-   CurrentOption = "Starter Island",
-   Callback = function(v)
-       local locations = {
-           ["Starter Island"] = CFrame.new(1054, 16, 1547),
-           ["Jungle"] = CFrame.new(-1255, 12, 335),
-           ["Pirate Village"] = CFrame.new(-1147, 4, 3828),
-           ["Desert"] = CFrame.new(944, 6, 4329),
-           ["Snow Mountain"] = CFrame.new(1354, 87, -1324)
-       }
-       if locations[v] then
-           lp.Character.HumanoidRootPart.CFrame = locations[v]
-       end
-   end,
-})
-
-TabMisc:CreateToggle({
-   Name = "Anti-AFK",
-   CurrentValue = true,
-   Callback = function(v)
-       -- Logic Anti-AFK
-       local vu = game:GetService("VirtualUser")
-       lp.Idled:Connect(function()
-           if v then vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame) task.wait(1) vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame) end
-       end)
-   end,
-})
-
 TabMisc:CreateButton({
-   Name = "Server Hop (Cari Server Sepi)",
+   Name = "Rejoin Game (Fix Lag/Kick)",
    Callback = function()
-       local x = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-       for _,v in pairs(x.data) do
-           if v.playing < v.maxPlayers then
-               game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
-           end
-       end
+       game:GetService("TeleportService"):Teleport(game.PlaceId, lp)
    end,
 })
 
-Rayfield:Notify({Title = "Vinz Hub Fixed", Content = "Bug Teleport Fix & Auto-Quest Ready!", Duration = 5})
+Rayfield:Notify({Title = "Vinz Hub Fix", Content = "Script sudah diperbarui! Gaskeun Vioo!", Duration = 5})
