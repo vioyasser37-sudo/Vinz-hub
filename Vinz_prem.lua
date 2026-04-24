@@ -1,13 +1,13 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB V6 | JATIM MODS 🚀",
-   LoadingTitle = "Premium Project by Vioo",
-   LoadingSubtitle = "Universal Combat & Visual",
+   Name = "VINZ HUB V6 PREMIUM 🚀",
+   LoadingTitle = "VinzTeam",
+   LoadingSubtitle = "by Vioo",
    ConfigurationSaving = { Enabled = false }
 })
 
--- 1. SETTINGS (Global Variables)
+-- 1. SETTINGS
 getgenv().VinzSetting = {
     WalkSpeed = 16,
     AimMode = "None",
@@ -15,7 +15,6 @@ getgenv().VinzSetting = {
     NoRecoil = false,
     FOV = 150,
     ESPBox = false,
-    ESPLine = false,
     HitboxSize = 2,
     HitboxTransparency = 0.5
 }
@@ -30,26 +29,23 @@ local TabMain = Window:CreateTab("Player 👤")
 local TabCombat = Window:CreateTab("Combat 🔫")
 local TabVisual = Window:CreateTab("Visuals 👁️")
 
--- 3. CORE FUNCTIONS
+-- 3. CORE LOGIC
 local function isVisible(part)
     if not getgenv().VinzSetting.WallCheck then return true end
-    local ray = Camera:ViewportPointToRay(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.FilterDescendantsInstances = {lp.Character}
-    local result = workspace:Raycast(Camera.CFrame.Position, part.Position - Camera.CFrame.Position, raycastParams)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {lp.Character}
+    local result = workspace:Raycast(Camera.CFrame.Position, part.Position - Camera.CFrame.Position, params)
     return result == nil or result.Instance:IsDescendantOf(part.Parent)
 end
 
 local function getClosestPlayer()
     local closestTarget = nil
     local shortestDistance = getgenv().VinzSetting.FOV
-
     for _, p in pairs(game.Players:GetPlayers()) do
         if p ~= lp and p.Character and p.Character:FindFirstChild(getgenv().VinzSetting.AimMode) then
             local targetPart = p.Character[getgenv().VinzSetting.AimMode]
             local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-            
             if onScreen and isVisible(targetPart) then
                 local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
                 if distance < shortestDistance then
@@ -108,28 +104,26 @@ TabVisual:CreateToggle({
    Callback = function(v) getgenv().VinzSetting.ESPBox = v end,
 })
 
--- 5. THE ENGINE (The Fix is Here)
+TabVisual:CreateDropdown({
+   Name = "UI Theme (Custom)",
+   Options = {"Default", "Ocean", "Amber", "Green", "DarkBlue"},
+   CurrentOption = "Default",
+   Callback = function(v) Rayfield:SetTheme(v) end,
+})
+
+-- 5. ENGINE LOOP
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        -- WalkSpeed Fix
         if lp.Character and lp.Character:FindFirstChild("Humanoid") then
             lp.Character.Humanoid.WalkSpeed = getgenv().VinzSetting.WalkSpeed
         end
-
-        -- Aimbot Logic
         if getgenv().VinzSetting.AimMode ~= "None" and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
             local target = getClosestPlayer()
-            if target then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-            end
+            if target then Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position) end
         end
-
-        -- Hitbox & ESP Fix (Looping All Players)
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = p.Character.HumanoidRootPart
-                
-                -- Hitbox Expander Fix
                 if getgenv().VinzSetting.HitboxSize > 2 then
                     hrp.Size = Vector3.new(getgenv().VinzSetting.HitboxSize, getgenv().VinzSetting.HitboxSize, getgenv().VinzSetting.HitboxSize)
                     hrp.Transparency = getgenv().VinzSetting.HitboxTransparency
@@ -138,24 +132,20 @@ RunService.RenderStepped:Connect(function()
                     hrp.Size = Vector3.new(2, 2, 1)
                     hrp.Transparency = 1
                 end
-
-                -- ESP Box Fix
                 if getgenv().VinzSetting.ESPBox then
                     if not hrp:FindFirstChild("VinzVisual") then
                         local box = Instance.new("SelectionBox", hrp)
                         box.Name = "VinzVisual"
                         box.LineThickness = 0.05
-                        box.Color3 = Color3.fromRGB(255, 0, 0)
+                        box.Color3 = Color3.fromRGB(255, 255, 255)
                     end
                     hrp.VinzVisual.Adornee = p.Character
                 else
-                    if hrp:FindFirstChild("VinzVisual") then
-                        hrp.VinzVisual:Destroy()
-                    end
+                    if hrp:FindFirstChild("VinzVisual") then hrp.VinzVisual:Destroy() end
                 end
             end
         end
     end)
 end)
 
-Rayfield:Notify({Title = "Vinz Hub V6", Content = "Fix Terpasang! Enjoy, Vioo!", Duration = 5})
+Rayfield:Notify({Title = "Vinz Hub V6", Content = "Script Premium Siap Dipakai!", Duration = 5})
