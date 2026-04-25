@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB VIP | FIX & ESP 💀",
-   LoadingTitle = "Groundwork Specialist",
-   LoadingSubtitle = "Vioo's Ultra Fix Edition",
+   Name = "VINZ HUB VIP | BUG FIXED 💀",
+   LoadingTitle = "TempekkTeam",
+   LoadingSubtitle = "Vioo's No-Bug Edition",
    ConfigurationSaving = { Enabled = false }
 })
 
@@ -20,16 +20,19 @@ getgenv().FlickConfig = {
 local lp = game.Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = lp:GetMouse()
+local RunService = game:GetService("RunService")
 
--- [[ REFRESH CAMERA FIX ]]
+-- [[ AUTO-REFRESH CAMERA ]]
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     camera = workspace.CurrentCamera
 end)
 
 -- [[ FUNGSI WALL CHECK ]]
 local function isVisible(part)
+    if not part then return false end
     local character = lp.Character
     if not character then return false end
+    
     local origin = camera.CFrame.Position
     local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
     local ray = RaycastParams.new()
@@ -40,34 +43,33 @@ local function isVisible(part)
     return not result or result.Instance:IsDescendantOf(part.Parent)
 end
 
--- [[ CORE ENGINE (AIMBOT + ESP) ]]
-task.spawn(function()
-    while task.wait() do
-        pcall(function()
-            local target = nil
-            local dist = math.huge
-            
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= lp and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-                    local part = p.Character:FindFirstChild(getgenv().FlickConfig.AimbotPart)
-                    
-                    -- 1. ESP LOGIC (HIGHLIGHTS)
-                    local highlight = p.Character:FindFirstChild("VinzESP")
-                    if getgenv().FlickConfig.ESP then
-                        if not highlight then
-                            highlight = Instance.new("Highlight")
-                            highlight.Name = "VinzESP"
-                            highlight.Parent = p.Character
-                            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            highlight.FillTransparency = 0.5
-                        end
-                    else
-                        if highlight then highlight:Destroy() end
+-- [[ CORE ENGINE - RENDER STEPPED (FASTEST) ]]
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        local target = nil
+        local dist = math.huge
+        
+        -- 1. LOOP PLAYER & ESP
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= lp and p.Character then
+                -- ESP CHAMS
+                local highlight = p.Character:FindFirstChild("VinzESP")
+                if getgenv().FlickConfig.ESP and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "VinzESP"
+                        highlight.Parent = p.Character
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        highlight.FillTransparency = 0.5
                     end
+                else
+                    if highlight then highlight:Destroy() end
+                end
 
-                    -- 2. AIMBOT LOGIC
-                    if getgenv().FlickConfig.Aimbot and part then
+                -- AIMBOT TARGETING
+                if getgenv().FlickConfig.Aimbot and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                    local part = p.Character:FindFirstChild(getgenv().FlickConfig.AimbotPart)
+                    if part then
                         if getgenv().FlickConfig.WallCheck and not isVisible(part) then
                             continue
                         end
@@ -83,14 +85,14 @@ task.spawn(function()
                     end
                 end
             end
+        end
 
-            -- EXECUTE LOCK
-            if target and getgenv().FlickConfig.Aimbot then
-                camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
-            end
-        end)
-
-        -- GUN MODS
+        -- 2. EXECUTE AIMBOT (NO DELAY)
+        if target and getgenv().FlickConfig.Aimbot then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+        end
+        
+        -- 3. NO RECOIL (REALTIME)
         if getgenv().FlickConfig.NoRecoil and lp.Character then
             for _, v in pairs(lp.Character:GetDescendants()) do
                 if v:IsA("NumberValue") and (v.Name:find("Recoil") or v.Name:find("Shake")) then
@@ -98,11 +100,11 @@ task.spawn(function()
                 end
             end
         end
-    end
+    end)
 end)
 
 -- [[ UI TABS ]]
-local TabCombat = Window:CreateTab("Combat & ESP 💀")
+local TabCombat = Window:CreateTab("Ultra Combat 💀")
 local TabPlayer = Window:CreateTab("Movement ⚡")
 
 TabCombat:CreateToggle({
@@ -127,11 +129,14 @@ TabCombat:CreateDropdown({
    Name = "Target Bone",
    Options = {"Head", "HumanoidRootPart"},
    CurrentOption = "Head",
-   Callback = function(v) getgenv().FlickConfig.AimbotPart = v end,
+   Callback = function(v) 
+       getgenv().FlickConfig.AimbotPart = v 
+       Rayfield:Notify({Title = "Mode Changed", Content = "Target sekarang: " .. v, Duration = 2})
+   end,
 })
 
 TabPlayer:CreateSlider({
-   Name = "Speed Hack",
+   Name = "Walk Speed",
    Range = {16, 250},
    Increment = 1,
    CurrentValue = 16,
@@ -142,4 +147,4 @@ TabPlayer:CreateSlider({
    end,
 })
 
-Rayfield:Notify({Title = "Vinz VIP Fixed", Content = "Bug Aimbot Fix + ESP Ready!", Duration = 5})
+Rayfield:Notify({Title = "FIXED TOTAL!", Content = "Ganti mode sekarang lancar jaya, Vioo!", Duration = 5})
