@@ -1,110 +1,141 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VINZ HUB VIP | [FPS] FLICK 💀",
-   LoadingTitle = "Groundwork Edition",
-   LoadingSubtitle = "Vioo's Anti-Ban Project",
+   Name = "VINZ HUB VIP | FLICK V3 🎯",
+   LoadingTitle = "Groundwork Specialist",
+   LoadingSubtitle = "Vioo's Wall-Check Edition",
    ConfigurationSaving = { Enabled = false }
 })
 
 -- [[ SETTINGS ]]
 getgenv().FlickConfig = {
-    HitboxSize = 2,
-    SilentAim = false,
+    Aimbot = false,
+    WallCheck = true, -- Fitur Baru
+    AimbotPart = "Head",
+    ShowFOV = false,
+    FOVSize = 100,
     TeamCheck = true,
-    NoRecoil = true,
-    Speed = 16,
-    Jump = 50,
-    AntiBan = true
+    NoRecoil = true
 }
 
 local lp = game.Players.LocalPlayer
 local camera = game:GetService("Workspace").CurrentCamera
 local mouse = lp:GetMouse()
 
--- [[ ANTI-BAN & BYPASS ]]
-if getgenv().FlickConfig.AntiBan then
-    -- Ngumpetin UI dari screenshot/screen recorder (kalo eksekutor support)
-    if (not IS_VULKAN_ENABLED) then
-        pcall(function() game:GetService("ContentProvider"):PreloadAsync({Window}) end)
+-- [[ FOV CIRCLE ]]
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.5
+
+-- [[ FUNGSI WALL CHECK (RAYCAST) ]]
+local function isVisible(part)
+    local character = lp.Character
+    if not character then return false end
+    
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {character, camera}
+    
+    local origin = camera.CFrame.Position
+    local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
+    local result = game:GetService("Workspace"):Raycast(origin, direction, params)
+    
+    -- Kalau tidak ada yang menghalangi antara kamera dan musuh, berarti Visible
+    if not result or result.Instance:IsDescendantOf(part.Parent) then
+        return true
     end
+    return false
 end
 
--- [[ CORE LOGIC ENGINE ]]
-task.spawn(function()
-    while task.wait() do
-        pcall(function()
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= lp and p.Character then
-                    -- Team Check Logic
-                    if not getgenv().FlickConfig.TeamCheck or p.Team ~= lp.Team then
-                        -- 1. HITBOX 100 WORK (Target HRP & Head)
-                        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            if getgenv().FlickConfig.HitboxSize > 2 then
-                                hrp.Size = Vector3.new(getgenv().FlickConfig.HitboxSize, getgenv().FlickConfig.HitboxSize, getgenv().FlickConfig.HitboxSize)
-                                hrp.Transparency = 0.7
-                                hrp.BrickColor = BrickColor.new("Bright blue")
-                                hrp.CanCollide = false
-                            else
-                                hrp.Size = Vector3.new(2, 2, 1)
-                                hrp.Transparency = 1
-                            end
-                        end
+-- [[ CORE AIMBOT ENGINE ]]
+local function getClosestPlayer()
+    local target = nil
+    local shortestDist = getgenv().FlickConfig.FOVSize
 
-                        -- 2. SILENT AIM (LOCK ON HEAD)
-                        if getgenv().FlickConfig.SilentAim then
-                            local head = p.Character:FindFirstChild("Head")
-                            if head then
-                                local pos, onscreen = camera:WorldToViewportPoint(head.Position)
-                                if onscreen then
-                                    -- Logic nembak otomatis kearah kepala
-                                    camera.CFrame = CFrame.new(camera.CFrame.Position, head.Position)
-                                end
-                            end
-                        end
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= lp and p.Character and p.Character:FindFirstChild(getgenv().FlickConfig.AimbotPart) and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            if not getgenv().FlickConfig.TeamCheck or p.Team ~= lp.Team then
+                local part = p.Character[getgenv().FlickConfig.AimbotPart]
+                local pos, onscreen = camera:WorldToViewportPoint(part.Position)
+                
+                if onscreen then
+                    -- Cek Wall Check
+                    if getgenv().FlickConfig.WallCheck and not isVisible(part) then
+                        continue -- Lewati musuh kalau di balik tembok
+                    end
+
+                    local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                    if dist < shortestDist then
+                        target = part
+                        shortestDist = dist
                     end
                 end
             end
+        end
+    end
+    return target
+end
 
-            -- 3. GUN MODS (NO RECOIL)
-            if getgenv().FlickConfig.NoRecoil and lp.Character then
+task.spawn(function()
+    while task.wait() do
+        FOVCircle.Visible = getgenv().FlickConfig.ShowFOV
+        FOVCircle.Radius = getgenv().FlickConfig.FOVSize
+        FOVCircle.Position = Vector2.new(mouse.X, mouse.Y + 36)
+
+        if getgenv().FlickConfig.Aimbot then
+            local target = getClosestPlayer()
+            if target then
+                camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+            end
+        end
+        
+        -- No Recoil logic
+        if getgenv().FlickConfig.NoRecoil and lp.Character then
+            pcall(function()
                 for _, v in pairs(lp.Character:GetDescendants()) do
                     if v:IsA("NumberValue") and (v.Name:find("Recoil") or v.Name:find("Shake")) then
                         v.Value = 0
                     end
                 end
-            end
-        end)
+            end)
+        end
     end
 end)
 
 -- [[ UI TABS ]]
-local TabCombat = Window:CreateTab("Main Combat 🔫")
+local TabAimbot = Window:CreateTab("Aimbot & Security 🎯")
 local TabPlayer = Window:CreateTab("Movement ⚡")
 
-TabCombat:CreateToggle({
-   Name = "Silent Aim (Auto Lock)",
+TabAimbot:CreateToggle({
+   Name = "Enable Aimbot Lock",
    CurrentValue = false,
-   Callback = function(v) getgenv().FlickConfig.SilentAim = v end,
+   Callback = function(v) getgenv().FlickConfig.Aimbot = v end,
 })
 
-TabCombat:CreateSlider({
-   Name = "Hitbox Expander (Max 100)",
-   Range = {2, 100},
-   Increment = 1,
-   CurrentValue = 2,
-   Callback = function(v) getgenv().FlickConfig.HitboxSize = v end,
-})
-
-TabCombat:CreateToggle({
-   Name = "Team Check",
+TabAimbot:CreateToggle({
+   Name = "Wall Check (Anti-Tembok)",
    CurrentValue = true,
-   Callback = function(v) getgenv().FlickConfig.TeamCheck = v end,
+   Callback = function(v) getgenv().FlickConfig.WallCheck = v end,
+})
+
+TabAimbot:CreateToggle({
+   Name = "Show FOV Circle",
+   CurrentValue = false,
+   Callback = function(v) getgenv().FlickConfig.ShowFOV = v end,
+})
+
+TabAimbot:CreateSlider({
+   Name = "FOV Size",
+   Range = {50, 500},
+   Increment = 10,
+   CurrentValue = 100,
+   Callback = function(v) getgenv().FlickConfig.FOVSize = v end,
 })
 
 TabPlayer:CreateSlider({
-   Name = "Walk Speed",
+   Name = "Speed Hack",
    Range = {16, 200},
    Increment = 1,
    CurrentValue = 16,
@@ -115,11 +146,4 @@ TabPlayer:CreateSlider({
    end,
 })
 
-TabPlayer:CreateButton({
-   Name = "Anti-Ban Active (Stealth Mode)",
-   Callback = function()
-       Rayfield:Notify({Title = "Security", Content = "Bypass deteksi dasar aktif!", Duration = 3})
-   end,
-})
-
-Rayfield:Notify({Title = "Vinz VIP Loaded", Content = "Map Flick Ready to Dominate!", Duration = 5})
+Rayfield:Notify({Title = "Wall Check Active", Content = "Aimbot makin pinter, Vioo!", Duration = 5})
