@@ -5,35 +5,25 @@
 ██║██║   ██║██╔══╝  ██╔══╝  ██╔══╝  ██║     ██╔══╝  
 ██║╚██████╔╝███████╗██║     ███████╗███████╗███████╗
 ╚═╝ ╚═════╝ ╚══════╝╚═════╝     ╚══════╝╚══════╝╚══════╝
-       OBSIDIAN COMBAT x RAYFIELD UI
-       Made for RanzModz
+       OBSIDIAN COMBAT - ZENITH UI
+       FIXED VERSION FOR RANZMODZ
 ]]
 
--- LOAD LIBRARY
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+-- GANTI LIBRARY BIAR PASTI JALAN
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main-loader"))()
 
--- CREATE WINDOW
-local Window = Rayfield:CreateWindow({
-   Name = "OBSIDIAN RECKONING",
-   LoadingTitle = "SYSTEM LOADING...",
-   LoadingSubtitle = "by RanzModz",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = nil,
-      FileName = "ObsidianCombat"
-   },
-   Discord = {
-      Enabled = false,
-      Invite = "noinvitelink",
-      RememberJoins = true
-   },
-   KeySystem = false
+local Window = Library:CreateWindow({
+    Name = "OBSIDIAN RECKONING",
+    Author = "by RanzModz",
+    Theme = "Dark",
+    Size = UDim2.new(0, 350, 0, 450),
+    Resizable = true,
+    Transparent = true
 })
 
 -- TABS
-local CombatTab = Window:CreateTab("⚔️ COMBAT", nil)
-local PlayerTab = Window:CreateTab("📱 PLAYER", nil)
-local MiscTab = Window:CreateTab("✨ MISC", nil)
+local CombatTab = Window:AddTab("⚔️ COMBAT")
+local PlayerTab = Window:AddTab("📱 PLAYER")
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -53,69 +43,51 @@ local Config = {
 }
 
 -- === COMBAT TAB ===
-CombatTab:CreateSection("⚔️ COMBAT SYSTEM")
+CombatTab:AddLabel("COMBAT SYSTEM")
 
-CombatTab:CreateToggle({
-   Name = "Aimbot / Lock Target",
-   CurrentValue = Config.Aimbot,
-   Flag = "AimbotToggle",
-   Callback = function(Value)
-      Config.Aimbot = Value
-   end,
+CombatTab:AddToggle("Aimbot", {
+    Text = "Aimbot / Lock Target",
+    Default = Config.Aimbot,
+    Callback = function(v) Config.Aimbot = v end
 })
 
-CombatTab:CreateToggle({
-   Name = "One Hit Kill",
-   CurrentValue = Config.OneHit,
-   Flag = "OneHitToggle",
-   Callback = function(Value)
-      Config.OneHit = Value
-   end,
+CombatTab:AddToggle("OneHit", {
+    Text = "One Hit Kill",
+    Default = Config.OneHit,
+    Callback = function(v) Config.OneHit = v end
 })
 
-CombatTab:CreateSlider({
-   Name = "Hitbox Size",
-   Range = {1, 15},
-   Increment = 0.5,
-   CurrentValue = Config.HitboxSize,
-   Flag = "HitboxSlider",
-   Callback = function(Value)
-      Config.HitboxSize = Value
-   end,
+CombatTab:AddSlider("Hitbox", {
+    Text = "Hitbox Size",
+    Min = 1,
+    Max = 15,
+    Default = Config.HitboxSize,
+    Callback = function(v) Config.HitboxSize = v end
 })
 
 -- === PLAYER TAB ===
-PlayerTab:CreateSection("📊 PLAYER STATS")
+PlayerTab:AddLabel("PLAYER STATS")
 
-PlayerTab:CreateSlider({
-   Name = "Walk Speed",
-   Range = {16, 500},
-   Increment = 5,
-   CurrentValue = Config.Speed,
-   Flag = "SpeedSlider",
-   Callback = function(Value)
-      Config.Speed = Value
-   end,
+PlayerTab:AddSlider("Speed", {
+    Text = "Walk Speed",
+    Min = 16,
+    Max = 500,
+    Default = Config.Speed,
+    Callback = function(v) Config.Speed = v end
 })
 
-PlayerTab:CreateSlider({
-   Name = "Jump Power",
-   Range = {50, 500},
-   Increment = 10,
-   CurrentValue = Config.JumpPower,
-   Flag = "JumpSlider",
-   Callback = function(Value)
-      Config.JumpPower = Value
-   end,
+PlayerTab:AddSlider("Jump", {
+    Text = "Jump Power",
+    Min = 50,
+    Max = 500,
+    Default = Config.JumpPower,
+    Callback = function(v) Config.JumpPower = v end
 })
 
-PlayerTab:CreateToggle({
-   Name = "God Mode",
-   CurrentValue = Config.GodMode,
-   Flag = "GodModeToggle",
-   Callback = function(Value)
-      Config.GodMode = Value
-   end,
+PlayerTab:AddToggle("GodMode", {
+    Text = "God Mode",
+    Default = Config.GodMode,
+    Callback = function(v) Config.GodMode = v end
 })
 
 -- === MAIN LOOP ===
@@ -166,11 +138,10 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- NOTIF
-Rayfield:Notify({
-   Title = "✅ SUCCESS!",
-   Content = "Obsidian Combat Activated!",
-   Duration = 4,
-   Image = "rbxassetid://4408781165"
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "✅ SUCCESS!",
+    Text = "Obsidian Combat Activated!",
+    Duration = 3
 })
 
-print("[OBSIDIAN] Script Loaded Successfully!")
+print("[OBSIDIAN] SCRIPT LOADED!")
