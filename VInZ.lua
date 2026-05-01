@@ -4,13 +4,15 @@
 ██║██║  ███╗█████╗  █████╗  █████╗  ██║     █████╗  
 ██║██║   ██║██╔══╝  ██╔══╝  ██╔══╝  ██║     ██╔══╝  
 ██║╚██████╔╝███████╗██║     ███████╗███████╗███████╗
-╚═╝ ╚═════╝ ╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝
+╚═╝ ╚═════╝ ╚══════╝╚═════╝     ╚══════╝╚══════╝╚══════╝
        OBSIDIAN COMBAT x RAYFIELD UI
        Made for RanzModz
 ]]
 
+-- LOAD LIBRARY
 local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
 
+-- CREATE WINDOW
 local Window = Rayfield:CreateWindow({
    Name = "OBSIDIAN RECKONING",
    LoadingTitle = "SYSTEM LOADING...",
@@ -33,7 +35,14 @@ local CombatTab = Window:CreateTab("⚔️ COMBAT", nil)
 local PlayerTab = Window:CreateTab("📱 PLAYER", nil)
 local MiscTab = Window:CreateTab("✨ MISC", nil)
 
--- === VARIABLES ===
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- CONFIG
 local Config = {
     Aimbot = true,
     OneHit = false,
@@ -42,12 +51,6 @@ local Config = {
     Speed = 50,
     JumpPower = 100
 }
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
 
 -- === COMBAT TAB ===
 CombatTab:CreateSection("⚔️ COMBAT SYSTEM")
@@ -122,7 +125,7 @@ RunService.RenderStepped:Connect(function()
     local Humanoid = Character:FindFirstChildOfClass("Humanoid")
     if not Humanoid then return end
 
-    -- APPLY PLAYER STATS
+    -- APPLY STATS
     Humanoid.WalkSpeed = Config.Speed
     Humanoid.JumpPower = Config.JumpPower
 
@@ -132,7 +135,7 @@ RunService.RenderStepped:Connect(function()
         Humanoid.Health = math.huge
     end
 
-    -- AIMBOT & HITBOX LOGIC
+    -- AIMBOT & HITBOX
     if Config.Aimbot then
         for _, v in pairs(Workspace:GetChildren()) do
             if v:FindFirstChild("Humanoid") and v ~= Character then
@@ -141,20 +144,20 @@ RunService.RenderStepped:Connect(function()
                 
                 if EnemyHum and Root and EnemyHum.Health > 0 then
                     
-                    -- SET HITBOX SIZE
+                    -- UBAH UKURAN BADAN
                     for _, part in pairs(v:GetChildren()) do
                         if part:IsA("BasePart") then
                             part.Size = part.Size * Config.HitboxSize
                         end
                     end
 
-                    -- ONE HIT KILL
+                    -- ONE HIT
                     if Config.OneHit then
                         EnemyHum.MaxHealth = 999999
                         EnemyHum.Health = 0.1
                     end
 
-                    -- LOCK CAMERA TO ENEMY
+                    -- LOCK KAMERA
                     Camera.CFrame = CFrame.new(Camera.CFrame.Position, Root.Position)
                 end
             end
@@ -162,7 +165,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOTIFICATION
+-- NOTIF
 Rayfield:Notify({
    Title = "✅ SUCCESS!",
    Content = "Obsidian Combat Activated!",
@@ -170,4 +173,4 @@ Rayfield:Notify({
    Image = "rbxassetid://4408781165"
 })
 
-print("[OBSIDIAN] Script Loaded Successfully by RanzModz")
+print("[OBSIDIAN] Script Loaded Successfully!")
