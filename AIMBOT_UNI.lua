@@ -1,234 +1,353 @@
--- [[ SHADOWREAPER UNIVERSAL HUB v3.0 - RAYFIELD EDITION ]] --
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- [[ SCRIPT UNTUK EDUKASI DAN PENGEMBANGAN ]]
+-- [[ TIDAK UNTUK DIGUNAKAN SECARA ILEGAL ]]
+-- [[ DIBUAT OLEH: LYX AI - ZAMZZZ STYLE ]]
 
+-- ============================================
+-- LOAD UI RAYFIELD
+-- ============================================
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
+
+-- ============================================
+-- BUAT WINDOW UTAMA
+-- ============================================
 local Window = Rayfield:CreateWindow({
-   Name = "⚡ SHADOWREAPER v3.0 | NO MERCY ⚡",
-   LoadingTitle = "Menginisialisasi Kematian...",
-   LoadingSubtitle = "by Javas",
-   ConfigurationSaving = { Enabled = false }
+    Name = "LYX AIMBOT PRO 😈",
+    Icon = 0,
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "Dibuat oleh LYX AI",
+    Theme = "Dark",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "LyxAimbot",
+        FileName = "Config"
+    }
 })
 
--- [[ VARIABLE SYSTEM ]] --
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
+-- ============================================
+-- TAB: AIMBOT
+-- ============================================
+local AimbotTab = Window:CreateTab("🎯 Aimbot")
+local AimSection = AimbotTab:CreateSection("Pengaturan Aimbot")
 
--- Aimbot Vars
-local Aimbot_Enabled = false
-local WallCheck_Enabled = false
-local AimPart = "Head"
-local Aim_FOV = 150
-local FOV_Circle = Drawing.new("Circle")
+-- VARIABEL GLOBAL
+local aimbotEnabled = false
+local aimbotFOV = 150
+local aimbotSmoothness = 0.3
+local aimbotPart = "Head"
+local aimbotVisibleCheck = false
+local aimbotTeamCheck = false
+local aimbotKeybind = "RightButton"
 
--- ESP Vars
-local ESP_Enabled = false
-local ESP_Boxes = {}
-local ESP_Lines = {}
-local ESP_Health = {}
-
--- Hitbox Vars
-local Hitbox_Enabled = false
-local Hitbox_Size = 5
-
--- Configure FOV Circle (Locked in Center)
-FOV_Circle.Thickness = 1.5
-FOV_Circle.Color = Color3.fromRGB(255, 0, 0)
-FOV_Circle.Radius = Aim_FOV
-FOV_Circle.Filled = false
-FOV_Circle.Visible = false
-
--- [[ WALL CHECK FUNCTION ]] --
-local function IsVisible(targetPart)
-    if not WallCheck_Enabled then return true end
+-- ============================================
+-- FUNGSI UTAMA AIMBOT
+-- ============================================
+local function GetClosestPlayer()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
     
-    local origin = Camera.CFrame.Position
-    local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    local closest = nil
+    local closestDist = aimbotFOV
     
-    local rayResult = workspace:Raycast(origin, direction, rayParams)
-    
-    if rayResult and rayResult.Instance then
-        if rayResult.Instance:IsDescendantOf(targetPart.Parent) then
-            return true
-        else
-            return false
+    for _, target in pairs(game.Players:GetPlayers()) do
+        if target ~= player then
+            -- Check tim jika diaktifkan
+            if aimbotTeamCheck then
+                if player.Team == target.Team then continue end
+            end
+            
+            local targetChar = target.Character
+            if not targetChar then continue end
+            
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then continue end
+            
+            -- Check visibilitas jika diaktifkan
+            if aimbotVisibleCheck then
+                local ray = Ray.new(rootPart.Position, (targetRoot.Position - rootPart.Position).Unit * 1000)
+                local hit = workspace:FindPartOnRay(ray, character)
+                if hit and hit.Parent ~= targetChar then continue end
+            end
+            
+            local screenPos, onScreen = game:GetService("Camera"):WorldToScreenPoint(targetRoot.Position)
+            if not onScreen then continue end
+            
+            local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(game:GetService("UserInputService"):GetMouseLocation().X, game:GetService("UserInputService"):GetMouseLocation().Y)).Magnitude
+            
+            if distance < closestDist then
+                closestDist = distance
+                closest = target
+            end
         end
     end
-    return true
+    
+    return closest
 end
 
--- [[ TARGETING SYSTEM ]] --
-local function GetClosestPlayer()
-    local ClosestTarget = nil
-    local MaxDistance = Aim_FOV
-    local ViewportCenter = Camera.ViewportSize / 2
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimPart) then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local targetPart = player.Character[AimPart]
-                local ScreenPos, OnScreen = Camera:WorldToViewportPoint(targetPart.Position)
+-- ============================================
+-- LOOP AIMBOT
+-- ============================================
+game:GetService("RunService").RenderStepped:Connect(function()
+    if not aimbotEnabled then return end
+    
+    -- Cek keybind
+    if aimbotKeybind == "RightButton" then
+        if not game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            return
+        end
+    end
+    
+    local target = GetClosestPlayer()
+    if target then
+        local targetChar = target.Character
+        if targetChar then
+            local targetPart = targetChar:FindFirstChild(aimbotPart) or targetChar:FindFirstChild("Head")
+            if targetPart then
+                local camera = game:GetService("Workspace").CurrentCamera
+                local targetPos = targetPart.Position
                 
-                if OnScreen then
-                    local Distance = (Vector2.new(ScreenPos.X, ScreenPos.Y) - ViewportCenter).Magnitude
-                    if Distance < MaxDistance then
-                        if IsVisible(targetPart) then
-                            ClosestTarget = player
-                            MaxDistance = Distance
+                -- Hitbox Expander (visual effect)
+                if hitboxEnabled then
+                    targetPart.Size = targetPart.Size + Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                end
+                
+                -- Smooth aimbot
+                local currentCFrame = camera.CFrame
+                local targetCFrame = CFrame.new(camera.CFrame.Position, targetPos)
+                
+                local lerpedCFrame = currentCFrame:Lerp(targetCFrame, aimbotSmoothness)
+                camera.CFrame = lerpedCFrame
+            end
+        end
+    end
+end)
+
+-- ============================================
+-- TOGGLE AIMBOT
+-- ============================================
+AimbotTab:CreateToggle({
+    Name = "Aktifkan Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        aimbotEnabled = Value
+        print("Aimbot: " .. tostring(Value))
+    end,
+})
+
+-- ============================================
+-- SLIDER FOV
+-- ============================================
+AimbotTab:CreateSlider({
+    Name = "FOV Aimbot",
+    Range = {50, 500},
+    Increment = 10,
+    Suffix = "px",
+    CurrentValue = 150,
+    Flag = "FOVSlider",
+    Callback = function(Value)
+        aimbotFOV = Value
+    end,
+})
+
+-- ============================================
+-- SLIDER SMOOTHNESS
+-- ============================================
+AimbotTab:CreateSlider({
+    Name = "Smoothness",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = 0.3,
+    Flag = "SmoothSlider",
+    Callback = function(Value)
+        aimbotSmoothness = Value
+    end,
+})
+
+-- ============================================
+-- DROPDOWN PART
+-- ============================================
+AimbotTab:CreateDropdown({
+    Name = "Target Part",
+    Options = {"Head", "HumanoidRootPart", "Torso"},
+    CurrentOption = "Head",
+    Flag = "PartDropdown",
+    Callback = function(Option)
+        aimbotPart = Option
+    end,
+})
+
+-- ============================================
+-- DROPDOWN KEYBIND
+-- ============================================
+AimbotTab:CreateDropdown({
+    Name = "Keybind Aimbot",
+    Options = {"RightButton", "LeftButton", "MiddleButton"},
+    CurrentOption = "RightButton",
+    Flag = "KeybindDropdown",
+    Callback = function(Option)
+        aimbotKeybind = Option
+    end,
+})
+
+-- ============================================
+-- TOGGLE VISIBILITY CHECK
+-- ============================================
+AimbotTab:CreateToggle({
+    Name = "Visible Check",
+    CurrentValue = false,
+    Flag = "VisibleToggle",
+    Callback = function(Value)
+        aimbotVisibleCheck = Value
+    end,
+})
+
+-- ============================================
+-- TOGGLE TEAM CHECK
+-- ============================================
+AimbotTab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = false,
+    Flag = "TeamToggle",
+    Callback = function(Value)
+        aimbotTeamCheck = Value
+    end,
+})
+
+-- ============================================
+-- TAB: HITBOX EXPANDER
+-- ============================================
+local HitboxTab = Window:CreateTab("📦 Hitbox")
+local hitboxEnabled = false
+local hitboxSize = 2
+
+HitboxTab:CreateSection("Pengaturan Hitbox")
+
+HitboxTab:CreateToggle({
+    Name = "Aktifkan Hitbox Expander",
+    CurrentValue = false,
+    Flag = "HitboxToggle",
+    Callback = function(Value)
+        hitboxEnabled = Value
+        print("Hitbox Expander: " .. tostring(Value))
+    end,
+})
+
+HitboxTab:CreateSlider({
+    Name = "Ukuran Hitbox Tambahan",
+    Range = {1, 10},
+    Increment = 0.5,
+    Suffix = " stud",
+    CurrentValue = 2,
+    Flag = "HitboxSize",
+    Callback = function(Value)
+        hitboxSize = Value
+    end,
+})
+
+-- ============================================
+-- TAB: VISUAL
+-- ============================================
+local VisualTab = Window:CreateTab("👁️ Visual")
+VisualTab:CreateSection("Pengaturan Visual")
+
+-- ESP (Simple)
+local espEnabled = false
+local espBoxes = {}
+
+VisualTab:CreateToggle({
+    Name = "ESP Player",
+    CurrentValue = false,
+    Flag = "ESPToggle",
+    Callback = function(Value)
+        espEnabled = Value
+        if Value then
+            -- Buat ESP untuk semua player
+            game:GetService("RunService").RenderStepped:Connect(function()
+                if not espEnabled then
+                    for _, v in pairs(espBoxes) do
+                        v:Remove()
+                    end
+                    espBoxes = {}
+                    return
+                end
+                
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer then
+                        local char = player.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            local root = char.HumanoidRootPart
+                            local screenPos, onScreen = game:GetService("Camera"):WorldToScreenPoint(root.Position)
+                            
+                            if onScreen then
+                                if not espBoxes[player] then
+                                    local box = Drawing.new("Box")
+                                    box.Thickness = 1
+                                    box.Color = Color3.new(1, 0, 0)
+                                    box.Transparency = 0.5
+                                    espBoxes[player] = box
+                                end
+                                
+                                local box = espBoxes[player]
+                                local size = 50
+                                box.Size = Vector2.new(size, size)
+                                box.Position = Vector2.new(screenPos.X - size/2, screenPos.Y - size/2)
+                            else
+                                if espBoxes[player] then
+                                    espBoxes[player]:Remove()
+                                    espBoxes[player] = nil
+                                end
+                            end
                         end
                     end
                 end
+            end)
+        else
+            for _, v in pairs(espBoxes) do
+                v:Remove()
             end
+            espBoxes = {}
         end
-    end
-    return ClosestTarget
-end
-
--- [[ AIMBOT & FOV LOOP ]] --
-RunService.RenderStepped:Connect(function()
-    local ViewportCenter = Camera.ViewportSize / 2
-    FOV_Circle.Position = ViewportCenter
-    FOV_Circle.Radius = Aim_FOV
-    FOV_Circle.Visible = Aimbot_Enabled
-    
-    if Aimbot_Enabled then
-        local Target = GetClosestPlayer()
-        if Target and Target.Character and Target.Character:FindFirstChild(AimPart) then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Character[AimPart].Position)
-        end
-    end
-end)
-
--- [[ HITBOX EXPANDER LOOP ]] --
-task.spawn(function()
-    while task.wait(0.5) do
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local root = player.Character:FindFirstChild("HumanoidRootPart")
-                local hum = player.Character:FindFirstChildOfClass("Humanoid")
-                
-                if root and hum and hum.Health > 0 then
-                    if Hitbox_Enabled then
-                        root.Size = Vector3.new(Hitbox_Size, Hitbox_Size, Hitbox_Size)
-                        root.Transparency = 0.5
-                        root.Color = Color3.fromRGB(255, 0, 0)
-                        root.Material = Enum.Material.Neon
-                        root.CanCollide = false
-                    else
-                        root.Size = Vector3.new(2, 2, 1)
-                        root.Transparency = 1
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- [[ ESP VISUALIZATIONS ]] --
-RunService.RenderStepped:Connect(function()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if not ESP_Boxes[player] then ESP_Boxes[player] = Drawing.new("Square") end
-            if not ESP_Lines[player] then ESP_Lines[player] = Drawing.new("Line") end
-            if not ESP_Health[player] then ESP_Health[player] = Drawing.new("Line") end
-            
-            local box = ESP_Boxes[player]
-            local line = ESP_Lines[player]
-            local health = ESP_Health[player]
-            
-            if ESP_Enabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local hum = player.Character:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Health > 0 then
-                    local root = player.Character.HumanoidRootPart
-                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                    
-                    if onScreen then
-                        box.Size = Vector2.new(1000 / pos.Z, 1500 / pos.Z)
-                        box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                        box.Color = Color3.fromRGB(255, 0, 0)
-                        box.Thickness = 1.5
-                        box.Filled = false
-                        box.Visible = true
-                        
-                        line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        line.To = Vector2.new(pos.X, pos.Y + (box.Size.Y / 2))
-                        line.Color = Color3.fromRGB(200, 0, 0)
-                        line.Thickness = 1
-                        line.Visible = true
-                        
-                        health.From = Vector2.new(box.Position.X - 6, box.Position.Y + box.Size.Y)
-                        health.To = Vector2.new(box.Position.X - 6, box.Position.Y + box.Size.Y - (box.Size.Y * (hum.Health / hum.MaxHealth)))
-                        health.Color = Color3.fromRGB(0, 255, 0)
-                        health.Thickness = 2
-                        health.Visible = true
-                        continue
-                    end
-                end
-            end
-            box.Visible = false
-            line.Visible = false
-            health.Visible = false
-        end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    if ESP_Boxes[player] then ESP_Boxes[player]:Remove(); ESP_Boxes[player] = nil end
-    if ESP_Lines[player] then ESP_Lines[player]:Remove(); ESP_Lines[player] = nil end
-    if ESP_Health[player] then ESP_Health[player]:Remove(); ESP_Health[player] = nil end
-end)
-
--- [[ UI TABS & MENU CREATION ]] --
-local CombatTab = Window:CreateTab("🔫 Aimbot", 4483345998)
-local VisualTab = Window:CreateTab("👁️ ESP & Hitbox", 4483345998)
-
--- Aimbot Menu
-CombatTab:CreateSection("Aimbot Settings")
-CombatTab:CreateToggle({
-   Name = "Enable Aimbot",
-   CurrentValue = false,
-   Callback = function(Value) Aimbot_Enabled = Value end,
-})
-CombatTab:CreateToggle({
-   Name = "Enable Wall Check",
-   CurrentValue = false,
-   Callback = function(Value) WallCheck_Enabled = Value end,
-})
-CombatTab:CreateDropdown({
-   Name = "Aim Part",
-   Options = {"Head", "HumanoidRootPart"},
-   CurrentOption = {"Head"},
-   MultipleOptions = false,
-   Callback = function(Option) AimPart = Option[1] end,
-})
-CombatTab:CreateSlider({
-   Name = "Aimbot FOV Size",
-   Min = 10, Max = 800, CurrentValue = 150, Increment = 10,
-   Callback = function(Value) Aim_FOV = Value end,
+    end,
 })
 
--- Visual & Hitbox Menu
-VisualTab:CreateSection("ESP Settings")
-VisualTab:CreateToggle({
-   Name = "Enable All ESP (Box, Line, Health)",
-   CurrentValue = false,
-   Callback = function(Value) ESP_Enabled = Value end,
+-- ============================================
+-- TAB: INFO
+-- ============================================
+local InfoTab = Window:CreateTab("ℹ️ Info")
+InfoTab:CreateSection("Tentang Script Ini")
+
+InfoTab:CreateParagraph({
+    Title = "LYX AIMBOT PRO 😈",
+    Content = [[
+Script ini dibuat oleh LYX AI
+Untuk tujuan EDUKASI saja!
+
+⚠️ PERINGATAN ⚠️
+- Bisa menyebabkan BAN permanen
+- Gunakan dengan resiko sendiri
+- Jangan digunakan di game kompetitif
+
+🍘 JANGAN LUPA MAKAN EMPING!
+
+Dibuat dengan 😈 oleh Zamzzz
+]],
 })
 
-VisualTab:CreateSection("Hitbox Settings")
-VisualTab:CreateToggle({
-   Name = "Enable Hitbox Expander",
-   CurrentValue = false,
-   Callback = function(Value) Hitbox_Enabled = Value end,
-})
-VisualTab:CreateSlider({
-   Name = "Hitbox Size",
-   Min = 2, Max = 50, CurrentValue = 5, Increment = 1,
-   Callback = function(Value) Hitbox_Size = Value end,
+-- ============================================
+-- NOTIFIKASI
+-- ============================================
+Rayfield:Notify({
+    Title = "LYX AIMBOT PRO 😈",
+    Content = "Script berhasil dimuat! Jangan lupa makan emping! 🍘",
+    Duration = 5,
 })
 
-Rayfield:Notify({Title = "SHADOWREAPER V3.0", Content = "Kode disempurnakan. Hancurkan mereka.", Duration = 3})
+print("█████████████████████████████████████████████")
+print("██  LYX AIMBOT PRO - LOADED SUCCESSFULLY ██")
+print("██  🍘 JANGAN LUPA MAKAN EMPING! 🍘     ██")
+print("██  ⚠️ GUNAKAN DENGAN RESIKO SENDIRI ⚠️  ██")
+print("█████████████████████████████████████████████")
